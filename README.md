@@ -64,10 +64,10 @@ whisper(ctx, snd)
 # Record 2 seconds of audio and perform speech recognition
 # Tell whisper it should treat the audio as spoken Japanese
 snd <- record_audio(2)
-whisper(ctx, snd, language = 'ja')
+whisper(ctx, snd, params = list(language = 'ja'))
 
 # Ask whisper to translate the Japanese into English
-whisper(ctx, snd, language = 'ja', translate = TRUE)
+whisper(ctx, snd, params = list(language = 'ja', translate = TRUE))
 ```
 
 ## Using different models
