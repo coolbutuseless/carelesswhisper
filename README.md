@@ -1,0 +1,127 @@
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+# carelesswhisper <img src="man/figures/logo.png" align="right" height="230/"/>
+
+<!-- badges: start -->
+
+![](https://img.shields.io/badge/cool-useless-green.svg)
+<!-- badges: end -->
+
+`carelesswhisper` is a (dependency-free!) package for recording audio
+and then performing Automatic Speech Recognition (ASR) using
+[`whisper.cpp`](https://github.com/ggerganov/whisper.cpp).
+
+This package includes the smallest multi-language `whisper.cpp` model
+(70MB) and it is possible to record audio and perform speech recognition
+immediately after install (without chasing down any file downloads or
+dependencies).
+
+## What’s in the box
+
+- `whisper_init()` and `whisper()` for interfacing with the built-in
+  [`whisper.cpp`](https://github.com/ggerganov/whisper.cpp) code for
+  speech recognition
+- `record_audio()` will record audio from your default input device
+  using the built-in [`miniaudio`](https://github.com/mackron/miniaudio)
+  C library.
+
+## Installation
+
+You can install from
+[GitHub](https://github.com/coolbutuseless/carelesswhisper) with:
+
+``` r
+# install.package('remotes')
+remotes::install_github('coolbutuseless/carelesswhisper')
+```
+
+### Platform notes:
+
+The audio recording in this package uses
+[`miniaudio`](https://github.com/mackron/miniaudio) - this is
+cross-platform and should work on macOS, Windows and Linux.
+
+However this package has only been tested on macOS so please let me know
+of any issues.
+
+No attempt has been made to choose good parameters for the compiler - so
+it is not optimized for any particular platform. This probably leaves a
+lot of speed on the table.
+
+## Using `carelesswhisper`
+
+``` r
+library(carelesswhisper)
+
+# Initialise whisper with built-in model (tiny, multi-language)
+ctx <- whisper_init()
+
+# Record 2 seconds of audio and perform speech recognition
+snd <- record_audio(2)
+whisper(ctx, snd)
+
+# Record 2 seconds of audio and perform speech recognition
+# Tell whisper it should treat the audio as spoken Japanese
+snd <- record_audio(2)
+whisper(ctx, snd, language = 'ja')
+
+# Ask whisper to translate the Japanese into English
+whisper(ctx, snd, language = 'ja', translate = TRUE)
+```
+
+## Using different models
+
+The model included with this package (and used by default when calling
+`whisper_init()`) is the smallest, multi-language model:
+`ggml-tiny.bin`.
+
+**Larger models** exist, but they need more RAM and run slower.
+
+**English-only models** can perform better if English is the only
+language you expect to encounter.
+
+If you want to use any of the different/more complex models, just
+download them and give the path to `whisper_init(path_to_model)`
+
+These models can be downloaded from:
+
+- [huggingface](https://huggingface.co/ggerganov/whisper.cpp/tree/main)
+- [ggerganov](https://ggml.ggerganov.com/)
+
+## Future
+
+The code is MIT licensed. Feel free to fork this and make of it what you
+want.
+
+Pull requests also welcomed - especially if they’re about fixing any
+cross-platform issues.
+
+## Related Software
+
+- [bnosac](https://www.bnosac.be/) also has an R package which wraps
+  `whisper.cpp` -
+  [audio.whisper](https://github.com/bnosac/audio.whisper)
+
+## Licenses
+
+- This R package is MIT licensed. See file: LICENSE
+- The included [`miniaudio`](https://github.com/mackron/miniaudio)
+  library is MIT licensed. See file `LICENSE-miniaudio.txt`
+- The included [`whisper.cpp`](https://github.com/ggerganov/whisper.cpp)
+  code is MIT licensed. See file `LICENSE-whisper.cpp.txt`
+  - Code: <https://github.com/ggerganov/whisper.cpp>
+  - Commit: 041be06d58
+  - 20 May 2023
+  - Modifications for R compatibility
+    - replaced all “fprintf(stderr, )” with “Rprintf()”
+    - replaced all “printf()” with “Rprintf()”
+    - replaced “fprintf() + abort()” with “error()”
+    - commented out all the benchmarking code (which include some puts()
+      and rand() calls and is not used in this pkg)
+
+## Acknowledgements
+
+- R Core for developing and maintaining the language.
+- CRAN maintainers, for patiently shepherding packages onto CRAN and
+  maintaining the repository
