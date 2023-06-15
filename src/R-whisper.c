@@ -10,7 +10,7 @@
 #include <unistd.h>
 
 #include "whisper.h"
-
+#include "data.frame.h"
 
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -32,7 +32,7 @@ struct whisper_context * external_ptr_to_whisper_context(SEXP ctx_) {
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// Finalizer for an 'whisper_context' object.
+// Finalizer for a 'whisper_context' object.
 //
 // This function will be called when whisper object gets 
 // garbage collected.
@@ -95,7 +95,9 @@ SEXP whisper_init_(SEXP path_, SEXP verbose_) {
 // Main whisper routine
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-SEXP whisper_(SEXP ctx_, SEXP snd_, SEXP params_) {
+SEXP whisper_(SEXP ctx_, SEXP snd_, SEXP params_, SEXP details_) {
+  
+  unsigned int nprotect = 0;
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Unpack the pointer to the whisper context
@@ -128,10 +130,12 @@ SEXP whisper_(SEXP ctx_, SEXP snd_, SEXP params_) {
   wparams.suppress_blank             = 1;
   wparams.suppress_non_speech_tokens = 1;
   
-  wparams.n_threads       = asInteger(VECTOR_ELT(params_, 0));
-  wparams.translate       = asLogical(VECTOR_ELT(params_, 1));
-  wparams.language        = CHAR(asChar(VECTOR_ELT(params_, 2)));
-  wparams.detect_language = asLogical(VECTOR_ELT(params_, 3));
+  wparams.n_threads        = asInteger  (VECTOR_ELT(params_, 0));
+  wparams.translate        = asLogical  (VECTOR_ELT(params_, 1));
+  wparams.language         = CHAR(asChar(VECTOR_ELT(params_, 2)));
+  wparams.max_len          = asInteger  (VECTOR_ELT(params_, 3));
+  wparams.detect_language  = asLogical  (VECTOR_ELT(params_, 4));
+  wparams.token_timestamps = true;
   
   
   
@@ -143,42 +147,83 @@ SEXP whisper_(SEXP ctx_, SEXP snd_, SEXP params_) {
     error("Whisper failed to process audio\n");
   }
   
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Extract text
-  //
-  // First figure out how much text we have.
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  SEXP res;
   const int n_segments = whisper_full_n_segments(ctx);
-  unsigned int total_len = 1;
-  for (unsigned int i = 0; i < n_segments; ++i) {
-    total_len += strlen(whisper_full_get_segment_text(ctx, i));
-  }
   
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Allocate just enough memory to hold this much text 
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  char *str;
-  str = (char *)calloc(total_len, sizeof(char));
-  if (str == NULL) {
-    free(fsnd);
-    error("Could not allocate %i bytes for 'str' output string", total_len);
-  }  
-  
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Copy the text into the result 'str'.
-  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  for (unsigned int i = 0; i < n_segments; ++i) {
-    const char * text = whisper_full_get_segment_text(ctx, i);
-    strncat(str, text, strlen(text));
+  if (!asLogical(details_)) {
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // Extract text
+    //
+    // First figure out how much text we have.
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    unsigned int total_len = 1;
+    for (unsigned int i = 0; i < n_segments; ++i) {
+      total_len += strlen(whisper_full_get_segment_text(ctx, i));
+    }
+    
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // Allocate just enough memory to hold this much text 
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    char *str;
+    str = (char *)calloc(total_len, sizeof(char));
+    if (str == NULL) {
+      free(fsnd);
+      error("Could not allocate %i bytes for 'str' output string", total_len);
+    }  
+    
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // Extract the segment text and copy into final result 
+    //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    for (unsigned int i = 0; i < n_segments; ++i) {
+      const char * text = whisper_full_get_segment_text(ctx, i);
+      strncat(str, text, strlen(text));
+    }
+    
+    res = PROTECT(mkString(str)); nprotect++;
+    free(str);
+  } else {
+    char *names[8] =  {
+      "lang_id",
+      "segment_idx",
+      "start",
+      "end",
+      "token_idx", 
+      "token_id", 
+      "token", 
+      "prob"
+    };
+    int types[8] = {
+      INTSXP, INTSXP, INTSXP, INTSXP, INTSXP, INTSXP, STRSXP, REALSXP
+    };
+    res = PROTECT(df_create(8, names, types));
+
+    for (unsigned int i = 0; i < n_segments; ++i) {
+      unsigned int ntokens = whisper_full_n_tokens(ctx, i);
+      for (unsigned int j = 0; j < ntokens; j++) {
+        df_add_row(
+          res, 
+          whisper_full_lang_id(ctx),
+          i,
+          whisper_full_get_segment_t0(ctx, i),
+          whisper_full_get_segment_t1(ctx, i),
+          j,
+          whisper_full_get_token_id(ctx, i, j),
+          whisper_full_get_token_text(ctx, i, j),
+          whisper_full_get_token_p(ctx, i, j)
+        );
+      }
+    }
+    
+    df_truncate_to_data_length(res);
   }
+
   
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Ensure we free 'str' after we make an R string from it.
   //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   free(fsnd);
-  SEXP res = PROTECT(mkString(str));
-  free(str);
-  UNPROTECT(1);
+  UNPROTECT(nprotect);
   
   return res;
 }

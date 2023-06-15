@@ -33,7 +33,8 @@ speech recognition immediately after install (without chasing down any file down
 * `whisper_init()` and `whisper()` for interfacing with the built-in [`whisper.cpp`](https://github.com/ggerganov/whisper.cpp) code for speech recognition
 * `record_audio()` will record audio from your default input device using the built-in 
   [`miniaudio`](https://github.com/mackron/miniaudio) C library.
-
+* `whisper_lang_codes` is the list of 2-letter language codes understood by whisper.
+* `jfk` a short audio sample for testing 
 
 
 ## Installation
@@ -48,10 +49,7 @@ remotes::install_github('coolbutuseless/carelesswhisper')
 ### Platform notes:
 
 The audio recording in this package uses [`miniaudio`](https://github.com/mackron/miniaudio) - this is cross-platform and
-should work on macOS, Windows and Linux.
-
-However this package has only been tested on macOS so please let me know of
-any issues.
+ works on macOS, Windows and Linux.
 
 No attempt has been made to choose good parameters for the compiler - so it
 is not optimized for any particular platform.  This probably leaves a lot 
@@ -79,6 +77,18 @@ whisper(ctx, snd, params = list(language = 'ja'))
 # Ask whisper to translate the Japanese into English
 whisper(ctx, snd, params = list(language = 'ja', translate = TRUE))
 ```
+
+
+```{r}
+# Detailed results using the included test sample of JFK
+# audio::play(jfk)
+ctx <- whisper_init()
+
+whisper(ctx, jfk)
+
+whisper(ctx, jfk, details = TRUE)
+```
+
 
 
 ## Using different models

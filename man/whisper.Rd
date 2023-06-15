@@ -4,7 +4,7 @@
 \alias{whisper}
 \title{Perform automatic speech recognition of the given sound sample}
 \usage{
-whisper(ctx, snd, params = list(), verbose = FALSE)
+whisper(ctx, snd, params = list(), verbose = FALSE, details = FALSE)
 }
 \arguments{
 \item{ctx}{whisper context (which you have previously created using \code{whisper_init()})}
@@ -20,6 +20,8 @@ of parameters by calling
  \code{whisper_param_defaults()} and then modify.}
 
 \item{verbose}{logical. be verbose? default: FALSE.}
+
+\item{details}{logical. return detailed breakdown as a data.frame?  default: FALSE}
 }
 \value{
 Character string

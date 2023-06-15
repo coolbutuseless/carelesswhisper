@@ -15,5 +15,7 @@ Named list of default parameters
    \item{translate}{Translate from source language into english? Default: FALSE}
    \item{language}{language represented in audio.  Use 'auto' to automatically
          detect language. Default: 'en'}
+   \item{max_len}{maximum segment length in characters. Default: 0 (meaning
+         no limit.  Set to 1 to get one-word-per-segment.)}
 }
 }

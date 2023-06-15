@@ -17,7 +17,8 @@ record_audio <- function(seconds) {
 whisper_params <- list(
   n_threads        = 4, # number of threads
   translate        = FALSE, # translate from source language to english
-  language         = "en"
+  language         = "en",
+  max_len          = 0L
 )
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -137,6 +138,8 @@ whisper_lang_codes <- list(
 #'    \item{translate}{Translate from source language into english? Default: FALSE}
 #'    \item{language}{language represented in audio.  Use 'auto' to automatically
 #'          detect language. Default: 'en'}
+#'    \item{max_len}{maximum segment length in characters. Default: 0 (meaning
+#'          no limit.  Set to 1 to get one-word-per-segment.)}
 #' }
 #' 
 #' @return Named list of default parameters
@@ -181,6 +184,7 @@ whisper_init <- function(model_path = system.file("ggml-tiny.bin", package = "ca
 #'       of parameters by calling
 #'        \code{whisper_param_defaults()} and then modify. 
 #' @param verbose logical. be verbose? default: FALSE.
+#' @param details logical. return detailed breakdown as a data.frame?  default: FALSE
 #' 
 #' @examples
 #' \dontrun{
@@ -194,7 +198,7 @@ whisper_init <- function(model_path = system.file("ggml-tiny.bin", package = "ca
 #' @importFrom utils modifyList
 #' @export
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-whisper <- function(ctx, snd, params = list(), verbose = FALSE) {
+whisper <- function(ctx, snd, params = list(), verbose = FALSE, details = FALSE) {
   
   # Sanitize params
   params <- modifyList(whisper_params, params, keep.null = TRUE)
@@ -205,8 +209,19 @@ whisper <- function(ctx, snd, params = list(), verbose = FALSE) {
     print(params)
   }
   
-  trimws(.Call(whisper_, ctx, snd, params))
+  res <- .Call(whisper_, ctx, snd, params, isTRUE(details))
+  
+  if (!details) {
+    trimws(res)
+  } else {
+    res
+  }
 }
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#' Audio sample for testing
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+"jfk"
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -216,6 +231,11 @@ if (FALSE) {
   ctx <- whisper_init()
   snd <- record_audio(2)
   whisper(ctx, snd)
+  
+  
+  ctx <- whisper_init()
+  whisper(ctx, jfk, details = TRUE)
+  
   
   snd <- record_audio(2)
   whisper(ctx, snd)

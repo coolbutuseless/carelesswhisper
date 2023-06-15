@@ -11,7 +11,7 @@ static const R_CallMethodDef CEntries[] = {
   
   {"record_audio_"   , (DL_FUNC) &record_audio_   , 1},
   {"whisper_init_"   , (DL_FUNC) &whisper_init_   , 2},
-  {"whisper_"        , (DL_FUNC) &whisper_        , 3},
+  {"whisper_"        , (DL_FUNC) &whisper_        , 4},
   {NULL , NULL, 0}
 };
 
