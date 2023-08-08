@@ -1,7 +1,7 @@
 Package: carelesswhisper
 Type: Package
 Title: Automatic Speech Recognition using Whisper.cpp
-Version: 0.1.1
+Version: 0.1.2
 Author: mikefc
 Maintainer: mikefc <mikefc@coolbutuseless.com>
 Description: Wrapper for whisper.cpp to perform automatic speech recognition.
@@ -11,3 +11,5 @@ LazyData: true
 RoxygenNote: 7.2.3
 Depends: 
     R (>= 2.10)
+Imports:
+    mirai (>= 0.9.1)

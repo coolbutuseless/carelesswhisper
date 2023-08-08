@@ -1,0 +1,1 @@
+PKG_CFLAGS = -mavx -mavx2 -mfma -mf16c -msse3 -O3 -std=c11 -fPIC
