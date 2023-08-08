@@ -1,3 +1,6 @@
+# carelesswhisper 0.1.2
+
+* Added `whisper_rt()` proof of concept real-time transcription function.
 
 # carelesswhisper 0.1.1  2023-06-17
 
